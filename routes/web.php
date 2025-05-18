@@ -172,4 +172,4 @@ Route::get('/pipedrive-panel-test', function () {
         'message' => 'This is static test data for your custom panel.'
     ];
     return view('pipedrive-panel-test', compact('data'));
-});
+})->middleware('allowIframe');  // <-- add your middleware here
