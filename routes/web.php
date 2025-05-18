@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 
 // Route::get('/api/pipedrive-customer-data', function (Request $request) {
@@ -41,13 +42,49 @@ Route::get('/api/pipedrive-customer-data', function (Request $request) {
 });
 
 Route::get('/pipedrive-panel', function (Request $request) {
-    $email = $request->query('email');
+    $personId = $request->query('person_id');
 
-    if (!$email) {
-        return response('No email provided.', 400);
+    if (!$personId) {
+        return response('Missing person_id', 400);
     }
 
-    $data = PipedriveHelper::fetchStripeData($email);
+    // 1. Get person details from Pipedrive API
+    $accessToken = env('PIPEDRIVE_ACCESS_TOKEN');
+    $personResponse = Http::withToken($accessToken)
+        ->get("https://api.pipedrive.com/v1/persons/{$personId}");
+
+    if ($personResponse->failed()) {
+        return view('pipedrive-panel', [
+            'email' => 'Unknown',
+            'data' => ['error' => 'Failed to fetch person from Pipedrive.']
+        ]);
+    }
+
+    $person = $personResponse->json('data');
+
+    // 2. Get email from person data
+    $email = $person['email'][0]['value'] ?? null;
+
+    if (!$email) {
+        return view('pipedrive-panel', [
+            'email' => 'Unknown',
+            'data' => ['error' => 'No email found for this person.']
+        ]);
+    }
+
+    // 3. Fetch Stripe data from your internal API
+    $stripeResponse = Http::get("https://octopus-app-3hac5.ondigitalocean.app/api/stripe_data", [
+        'email' => $email
+    ]);
+
+    if ($stripeResponse->failed()) {
+        return view('pipedrive-panel', [
+            'email' => $email,
+            'data' => ['error' => 'Failed to fetch Stripe data.']
+        ]);
+    }
+
+    $data = $stripeResponse->json();
 
     return view('pipedrive-panel', compact('email', 'data'));
 });
@@ -88,5 +125,40 @@ Route::get('/custom-panel', function (Illuminate\Http\Request $request) {
 
     // Render a view with the transaction data
     return view('pipedrive-panel', ['transactions' => $transactions]);
+});
+
+Route::get('/panel', function (Request $request) {
+    $personId = $request->query('person_id');
+
+    if (!$personId) {
+        return response('Missing person_id', 400);
+    }
+
+    // Use your Pipedrive API token from .env
+    $token = env('PIPEDRIVE_ACCESS_TOKEN');
+
+    // Step 1: Fetch person info using person_id
+    $response = Http::withToken($token)
+        ->get("https://api.pipedrive.com/v1/persons/{$personId}");
+
+    if (!$response->ok()) {
+        return response('Failed to fetch contact from Pipedrive', 400);
+    }
+
+    $person = $response->json('data');
+    $email = $person['email'][0]['value'] ?? null;
+
+    if (!$email) {
+        return response('No email found for this contact', 404);
+    }
+
+    // Step 2: Use email to fetch Stripe data from your external API
+    $stripeRes = Http::get('https://octopus-app-3hac5.ondigitalocean.app/api/stripe_data', [
+        'email' => $email
+    ]);
+
+    $data = $stripeRes->ok() ? $stripeRes->json() : ['error' => 'Stripe API error'];
+
+    return view('pipedrive-panel', compact('email', 'data'));
 });
 
