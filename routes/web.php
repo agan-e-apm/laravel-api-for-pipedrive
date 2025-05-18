@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
 
 // Route::get('/api/pipedrive-customer-data', function (Request $request) {
 //     $email = $request->query('email');
@@ -42,4 +44,26 @@ Route::get('/pipedrive-panel', function (Request $request) {
     $email = $request->query('email');
     $data = PipedriveHelper::fetchStripeData($email);
     return view('pipedrive-panel', compact('email', 'data'));
+});
+
+Route::get('/', function (Illuminate\Http\Request $request) {
+    $code = $request->query('code');
+
+    if (!$code) {
+        return response('No code found', 400);
+    }
+
+    // Exchange code for access token
+    $response = Http::asForm()->post('https://oauth.pipedrive.com/oauth/token', [
+        'grant_type' => 'authorization_code',
+        'code' => $code,
+        'redirect_uri' => 'https://laravel-api-for-pipedrive.onrender.com/',
+        'client_id' => env('PIPEDRIVE_CLIENT_ID'),
+        'client_secret' => env('PIPEDRIVE_CLIENT_SECRET'),
+    ]);
+
+    $data = $response->json();
+
+    // Save $data['access_token'] securely, maybe in the DB or session
+    return response()->json($data);
 });
