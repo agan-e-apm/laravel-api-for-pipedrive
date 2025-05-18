@@ -67,3 +67,18 @@ Route::get('/', function (Illuminate\Http\Request $request) {
     // Save $data['access_token'] securely, maybe in the DB or session
     return response()->json($data);
 });
+
+Route::get('/custom-panel', function (Illuminate\Http\Request $request) {
+    $email = $request->query('email');
+
+    if (!$email) {
+        return 'No email provided';
+    }
+
+    // Use your helper or service to get transaction/invoice data based on $email
+    $transactions = \App\Helpers\PipedriveHelper::fetchStripeData($email);
+
+    // Render a view with the transaction data
+    return view('pipedrive-panel', ['transactions' => $transactions]);
+});
+
