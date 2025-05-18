@@ -52,6 +52,8 @@ Route::get('/pipedrive-panel', function (Request $request) {
     return view('pipedrive-panel', compact('email', 'data'));
 });
 
+
+
 Route::get('/', function (Illuminate\Http\Request $request) {
     $code = $request->query('code');
 
