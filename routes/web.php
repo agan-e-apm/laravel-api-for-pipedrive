@@ -58,8 +58,8 @@ Route::get('/', function (Illuminate\Http\Request $request) {
         'grant_type' => 'authorization_code',
         'code' => $code,
         'redirect_uri' => 'https://laravel-api-for-pipedrive.onrender.com/',
-        'client_id' => env('PIPEDRIVE_CLIENT_ID'),
-        'client_secret' => env('PIPEDRIVE_CLIENT_SECRET'),
+        'client_id' => env('282cb0ce394d6b67'),
+        'client_secret' => env('b86df329ac5be32bfa041ff9092f2731cb10fa7e'),
     ]);
 
     $data = $response->json();
