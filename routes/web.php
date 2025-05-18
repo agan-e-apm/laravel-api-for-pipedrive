@@ -162,3 +162,35 @@ Route::get('/panel', function (Request $request) {
     return view('pipedrive-panel', compact('email', 'data'));
 });
 
+Route::get('/api/pipedrive-panel-data', function (Request $request) {
+    $personId = $request->query('person_id');
+
+    if (!$personId) {
+        return response()->json(['error' => 'Missing person_id'], 400);
+    }
+
+    $accessToken = env('PIPEDRIVE_ACCESS_TOKEN');
+
+    // Get person details from Pipedrive
+    $response = Http::withToken($accessToken)
+        ->get("https://api.pipedrive.com/v1/persons/{$personId}");
+
+    if (!$response->ok()) {
+        return response()->json(['error' => 'Failed to fetch person data'], 500);
+    }
+
+    $person = $response->json('data');
+    $email = $person['email'][0]['value'] ?? null;
+
+    if (!$email) {
+        return response()->json(['error' => 'No email found'], 404);
+    }
+
+    // Get Stripe data
+    $stripeData = Http::get('https://octopus-app-3hac5.ondigitalocean.app/api/stripe_data', [
+        'email' => $email
+    ])->json();
+
+    return response()->json(array_merge($stripeData, ['email' => $email]));
+});
+

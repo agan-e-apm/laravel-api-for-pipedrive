@@ -66,5 +66,29 @@
         </table>
     @endif
 
+     <script src="https://app.pipedriveassets.com/app_extensions/sdk.js"></script>
+    <script>
+        window.pipedriveAppExtension.init().then(function(data) {
+            const personId = data.context.person.id;
+
+            // Fetch data from your backend using person_id
+            fetch(`https://laravel-api-for-pipedrive.onrender.com/api/pipedrive-panel-data?person_id=${personId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('panel-content');
+                    if (data.error) {
+                        container.innerHTML = '<p>Error: ' + data.error + '</p>';
+                    } else {
+                        container.innerHTML = `
+                            <h3>Stripe Data for ${data.email}</h3>
+                            <p>Customer Count: ${data.customer_count}</p>
+                            <p>Invoice Count: ${data.invoices.length}</p>
+                            <p>Charge Count: ${data.charges.length}</p>
+                        `;
+                    }
+                });
+        });
+    </script>
+
 </body>
 </html>
