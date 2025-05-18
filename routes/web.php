@@ -42,7 +42,13 @@ Route::get('/api/pipedrive-customer-data', function (Request $request) {
 
 Route::get('/pipedrive-panel', function (Request $request) {
     $email = $request->query('email');
+
+    if (!$email) {
+        return response('No email provided.', 400);
+    }
+
     $data = PipedriveHelper::fetchStripeData($email);
+
     return view('pipedrive-panel', compact('email', 'data'));
 });
 
